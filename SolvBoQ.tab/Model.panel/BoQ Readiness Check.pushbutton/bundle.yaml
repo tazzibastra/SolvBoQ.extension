@@ -1,0 +1,6 @@
+title: BoQ Readiness Check
+tooltip: >
+  Focused BoQ-readiness score (0-100): only the checks that affect the takeoff
+  quantity or its SANS classification — materials, quantities, double-counts,
+  phase, design options, generic models, in-place families. Advisory.
+author: Solv Systems

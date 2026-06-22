@@ -1,0 +1,6 @@
+title: Model Health Check
+tooltip: >
+  Comprehensive model-readiness score (0-100) with a fix-it list. All checks:
+  materials, quantities, overlaps/warnings, phase, design options, in-place
+  families, generic models, marks and levels. Advisory — never blocks.
+author: Solv Systems

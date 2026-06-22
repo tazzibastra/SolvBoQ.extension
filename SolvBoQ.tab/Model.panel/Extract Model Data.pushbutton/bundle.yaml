@@ -1,0 +1,5 @@
+title: Extract Model Data
+tooltip: >
+  Walk the open model and export per-material quantities, levels, joins and
+  labels to JSON + CSV — the input for the SANS 1200 BoQ mapping step.
+author: Solv Systems
