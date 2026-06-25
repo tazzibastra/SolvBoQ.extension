@@ -218,6 +218,36 @@ def get_level_name(element):
     return ""
 
 
+def get_level_elevation(element):
+    """Elevation (m) of the element's associated level, or "" if none. Lets the
+    BoQ tell ground-bearing slabs from suspended (upper-floor) ones."""
+    try:
+        lid = element.LevelId
+        if lid and lid != DB.ElementId.InvalidElementId:
+            lvl = doc.GetElement(lid)
+            if lvl is not None and hasattr(lvl, "Elevation"):
+                return round(lvl.Elevation * FT_TO_M, 3)
+    except Exception:
+        pass
+    for bip in (DB.BuiltInParameter.FAMILY_BASE_LEVEL_PARAM,
+                DB.BuiltInParameter.FAMILY_LEVEL_PARAM,
+                DB.BuiltInParameter.INSTANCE_REFERENCE_LEVEL_PARAM,
+                DB.BuiltInParameter.SCHEDULE_LEVEL_PARAM,
+                DB.BuiltInParameter.WALL_BASE_CONSTRAINT,
+                DB.BuiltInParameter.LEVEL_PARAM):
+        try:
+            p = element.get_Parameter(bip)
+            if p and p.HasValue:
+                lid = p.AsElementId()
+                if lid and lid != DB.ElementId.InvalidElementId:
+                    lvl = doc.GetElement(lid)
+                    if lvl is not None and hasattr(lvl, "Elevation"):
+                        return round(lvl.Elevation * FT_TO_M, 3)
+        except Exception:
+            continue
+    return ""
+
+
 def is_structural(element):
     """Best-effort read of the 'Structural' instance flag (relevant for walls)."""
     try:
@@ -365,6 +395,7 @@ def build_record(element):
         "family": family_name,
         "type": type_name,
         "level": get_level_name(element),
+        "level_elevation": get_level_elevation(element),
         "mark": get_param_string(element, DB.BuiltInParameter.ALL_MODEL_MARK),
         "comments": get_param_string(
             element, DB.BuiltInParameter.ALL_MODEL_INSTANCE_COMMENTS),
@@ -388,6 +419,7 @@ def flatten_records(records):
             "family": r["family"],
             "type": r["type"],
             "level": r["level"],
+            "level_elevation": r["level_elevation"],
             "mark": r["mark"],
             "comments": r["comments"],
             "is_structural": r["is_structural"],
@@ -415,7 +447,7 @@ def write_csv(flat_rows, path):
     """Write a flat CSV without relying on the csv module's dialect quirks
     across IronPython / CPython. Quotes fields and escapes embedded quotes."""
     columns = [
-        "element_id", "category", "family", "type", "level", "mark",
+        "element_id", "category", "family", "type", "level", "level_elevation", "mark",
         "comments", "is_structural", "joined_to_count", "material_name",
         "looks_like_concrete", "volume_m3", "area_m2",
     ]

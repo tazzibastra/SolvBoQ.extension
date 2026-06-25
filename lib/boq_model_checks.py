@@ -204,6 +204,36 @@ def _level_name(doc, element):
     return ""
 
 
+def _level_elevation(doc, element):
+    """Elevation (m) of the element's associated level, or "" if none. Used
+    downstream to tell ground-bearing slabs from suspended (upper-floor) ones."""
+    try:
+        lid = element.LevelId
+        if lid and lid != DB.ElementId.InvalidElementId:
+            lvl = doc.GetElement(lid)
+            if lvl is not None and hasattr(lvl, "Elevation"):
+                return round(lvl.Elevation * FT_TO_M, 3)
+    except Exception:
+        pass
+    for bip in (DB.BuiltInParameter.FAMILY_BASE_LEVEL_PARAM,
+                DB.BuiltInParameter.FAMILY_LEVEL_PARAM,
+                DB.BuiltInParameter.INSTANCE_REFERENCE_LEVEL_PARAM,
+                DB.BuiltInParameter.SCHEDULE_LEVEL_PARAM,
+                DB.BuiltInParameter.WALL_BASE_CONSTRAINT,
+                DB.BuiltInParameter.LEVEL_PARAM):
+        try:
+            p = element.get_Parameter(bip)
+            if p and p.HasValue:
+                lid = p.AsElementId()
+                if lid and lid != DB.ElementId.InvalidElementId:
+                    lvl = doc.GetElement(lid)
+                    if lvl is not None and hasattr(lvl, "Elevation"):
+                        return round(lvl.Elevation * FT_TO_M, 3)
+        except Exception:
+            continue
+    return ""
+
+
 def _is_in_place(element):
     try:
         sym = getattr(element, "Symbol", None)
@@ -353,6 +383,7 @@ def _record(doc, element):
     return {
         "element_id": _eid_int(element.Id), "category": cat, "family": fam, "type": typ,
         "level": _level_name(doc, element),
+        "level_elevation": _level_elevation(doc, element),
         "mark": _param_string(element, DB.BuiltInParameter.ALL_MODEL_MARK),
         "is_in_place": _is_in_place(element),
         "phase_created": _phase_created(doc, element), "demolished": _is_demolished(element),
@@ -579,8 +610,8 @@ def _location_str(rec):
 
 # Columns the mapping step (map_to_boq.py) reads — same shape as the Extract
 # button's CSV, flattened one row per material per element.
-_EXTRACT_COLUMNS = ["element_id", "category", "family", "type", "level", "mark",
-                    "material_name", "volume_m3", "area_m2", "joined_to_count"]
+_EXTRACT_COLUMNS = ["element_id", "category", "family", "type", "level", "level_elevation",
+                    "mark", "material_name", "volume_m3", "area_m2", "joined_to_count"]
 
 
 def build_extract_csv(doc):
@@ -595,7 +626,7 @@ def build_extract_csv(doc):
 
     lines = [u",".join(_EXTRACT_COLUMNS)]
     for r in records:
-        base = [r["element_id"], r["category"], r["family"], r["type"], r["level"], r["mark"]]
+        base = [r["element_id"], r["category"], r["family"], r["type"], r["level"], r["level_elevation"], r["mark"]]
         jc = len(r.get("joined_to_element_ids") or [])
         mats = r.get("materials") or []
         if mats:
